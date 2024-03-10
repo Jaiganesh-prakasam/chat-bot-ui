@@ -1,5 +1,5 @@
 import { AfterViewChecked, Component, ElementRef, Input, OnInit, ViewChild } from '@angular/core';
-import { FormGroup, FormBuilder } from '@angular/forms';
+import { UntypedFormGroup, UntypedFormBuilder } from '@angular/forms';
 
 class Message {
   text?: string;
@@ -21,11 +21,11 @@ export class ChatComponent implements OnInit, AfterViewChecked {
   @ViewChild('messageContainer') private messageContainer: ElementRef;
   @Input() public display: string;
 
-  public form: FormGroup;
+  public form: UntypedFormGroup;
   public messages: Array<Message> = [];
   private canSendMessage = true;
 
-  constructor(private formBuilder: FormBuilder){}
+  constructor(private formBuilder: UntypedFormBuilder){}
 
   ngOnInit(): void {
     this.form = this.formBuilder.group({
@@ -34,12 +34,34 @@ export class ChatComponent implements OnInit, AfterViewChecked {
     this.getBotMessage();
   }
 
-  ngAfterViewChecked(): void {        
-    this.scrollToBottom();        
-  } 
+  ngAfterViewChecked(): void {
+    this.scrollToBottom();
+  }
 
-  public onClickSendMessage(): void {
+  public async onClickSendMessage(): Promise<void> {
     const message = this.form.get('message').value;
+
+        const response = await fetch("http://localhost:8080/searchInput", {
+      method: "POST", // *GET, POST, PUT, DELETE, etc.
+      mode: "cors", // no-cors, *cors, same-origin
+      cache: "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
+      credentials: "same-origin", // include, *same-origin, omit
+      headers: {
+        "Content-Type": "application/json",
+        // 'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      redirect: "follow", // manual, *follow, error
+      referrerPolicy: "no-referrer", // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
+      body: JSON.stringify({
+        "prompt": message,
+        "temperature": 0.5,
+        "max_tokens": 50,
+        "top_p": 1,
+        "frequency_penalty": 0,
+        "presence_penalty": 0
+      }), // body data type must match "Content-Type" header
+    });
+    const movies = await response.json();
 
     if (message && this.canSendMessage) {
       const userMessage: Message = {text: message, type: MessageType.User};
@@ -51,7 +73,7 @@ export class ChatComponent implements OnInit, AfterViewChecked {
     }
   }
 
-  private getBotMessage(): void {
+  private  getBotMessage(): void {
     this.canSendMessage = false;
     const waitMessage: Message = {type: MessageType.Loading};
     this.messages.push(waitMessage);
@@ -70,6 +92,6 @@ export class ChatComponent implements OnInit, AfterViewChecked {
   }
 
   private scrollToBottom(): void {
-    this.messageContainer.nativeElement.scrollTop = this.messageContainer.nativeElement.scrollHeight;         
+    this.messageContainer.nativeElement.scrollTop = this.messageContainer.nativeElement.scrollHeight;
   }
 }
